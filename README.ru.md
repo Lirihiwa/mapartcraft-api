@@ -29,18 +29,36 @@ curl http://localhost:3000/health
 
 > API читает JSON-файлы из `../src/components/mapart/json/`, поэтому папка `api/` должна лежать внутри репозитория MapartCraft.
 
+## Docker
+
+Собирай образ из **корня репозитория** (образу нужны и `api/`, и JSON-данные из `src/`):
+
+```bash
+docker build -f api/Dockerfile -t mapartcraft-api .
+docker run --rm -p 3000:3000 mapartcraft-api
+```
+
+Порт меняется так: `-e PORT=8080 -p 8080:8080`.
+
 ## Пример использования
 
 Создай `settings.json`:
 
 ```json
 {
-  "mapSize_x": 1,
-  "mapSize_y": 1,
-  "version": "1.20",
-  "staircasing": false,
-  "dithering": "FloydSteinberg",
-  "selectedBlocks": { "13": "0", "28": "0", "27": "0", "24": "0", "26": "0", "17": "0" }
+    "mapSize_x": 1,
+    "mapSize_y": 1,
+    "version": "1.20",
+    "staircasing": false,
+    "dithering": "FloydSteinberg",
+    "selectedBlocks": {
+        "13": "0",
+        "28": "0",
+        "27": "0",
+        "24": "0",
+        "26": "0",
+        "17": "0"
+    }
 }
 ```
 
@@ -58,13 +76,18 @@ curl -X POST http://localhost:3000/previews \
 
 ```json
 {
-  "previewId": "c0586cd1-871d-4790-b519-66a7c627fbd6",
-  "width": 128,
-  "height": 128,
-  "imageUrl": "/previews/c0586cd1-871d-4790-b519-66a7c627fbd6/image",
-  "materials": [
-    { "colourSetId": "28", "blockId": "0", "displayName": "Black Wool", "count": 8051 }
-  ]
+    "previewId": "c0586cd1-871d-4790-b519-66a7c627fbd6",
+    "width": 128,
+    "height": 128,
+    "imageUrl": "/previews/c0586cd1-871d-4790-b519-66a7c627fbd6/image",
+    "materials": [
+        {
+            "colourSetId": "28",
+            "blockId": "0",
+            "displayName": "Black Wool",
+            "count": 8051
+        }
+    ]
 }
 ```
 
@@ -84,29 +107,29 @@ curl -X POST http://localhost:3000/previews/<previewId>/nbt -o mapart.nbt
 
 ## Справочник API
 
-| Метод | Путь | Описание |
-| ----- | ---- | -------- |
-| `GET` | `/health` | Проверка работоспособности. |
-| `POST` | `/previews` | `multipart/form-data` с полями `image` (файл) и `settings` (строка с JSON). Возвращает `previewId`, `width`, `height`, `imageUrl`, `materials`. |
-| `GET` | `/previews/:id/image` | Превью в формате PNG. Необязательный параметр `?scale=1..16`. |
-| `POST` | `/previews/:id/nbt` | Сжатая `.nbt`-схема, собранная из сохранённого превью. |
+| Метод  | Путь                  | Описание                                                                                                                                        |
+| ------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/health`             | Проверка работоспособности.                                                                                                                     |
+| `POST` | `/previews`           | `multipart/form-data` с полями `image` (файл) и `settings` (строка с JSON). Возвращает `previewId`, `width`, `height`, `imageUrl`, `materials`. |
+| `GET`  | `/previews/:id/image` | Превью в формате PNG. Необязательный параметр `?scale=1..16`.                                                                                   |
+| `POST` | `/previews/:id/nbt`   | Сжатая `.nbt`-схема, собранная из сохранённого превью.                                                                                          |
 
 Ошибки возвращаются в JSON: `{ "error": "..." }` со статусом `400` (неверные данные) или `404` (превью не найдено или устарело).
 
 ### Настройки
 
-| Поле | По умолчанию | Описание |
-| ---- | ------------ | -------- |
-| `selectedBlocks` | нет, **обязательно** | Объект `colourSetId → blockId` (см. `coloursJSON.json`). `"-1"` значит «не использовать этот цвет». Нужен хотя бы один блок. |
-| `mapSize_x`, `mapSize_y` | `1` | Размер в картах. Одна карта это 128×128 блоков. |
-| `version` | `"1.20"` | Версия Minecraft для названий блоков (`1.12.2` … `1.20`, см. `supportedVersions.json`). |
-| `staircasing` | `true` | `false` для плоской карты (один оттенок на цвет). `true` использует тёмный/обычный/светлый оттенки (в 3 раза больше цветов). |
-| `betterColour` | `true` | Подбор цветов в пространстве Lab вместо RGB. |
-| `dithering` | `"FloydSteinberg"` | `None`, `FloydSteinberg`, `MinAvgErr`, `Burkes`, `SierraLite`, `Stucki`, `Atkinson`, `Bayer44`, `Bayer22`, `Ordered33`. |
-| `cropMode` | `"center"` | `center`, `manual` или `off` (растянуть). |
-| `zoom`, `percent_x`, `percent_y` | `10`, `50`, `50` | Ручной кроп: зум `10..50` (10 = вся картинка), смещения `0..100`. |
-| `preprocessing` | выключено | `{ "enabled": true, "brightness": 100, "contrast": 100, "saturation": 100 }`, каждое значение `0..200`, `100` = без изменений. |
-| `supportBlock` | `"cobblestone"` | Блок для noobline (лишнего ряда блоков, который задаёт оттенок первой строки карты). |
+| Поле                             | По умолчанию         | Описание                                                                                                                       |
+| -------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `selectedBlocks`                 | нет, **обязательно** | Объект `colourSetId → blockId` (см. `coloursJSON.json`). `"-1"` значит «не использовать этот цвет». Нужен хотя бы один блок.   |
+| `mapSize_x`, `mapSize_y`         | `1`                  | Размер в картах. Одна карта это 128×128 блоков.                                                                                |
+| `version`                        | `"1.20"`             | Версия Minecraft для названий блоков (`1.12.2` … `1.20`, см. `supportedVersions.json`).                                        |
+| `staircasing`                    | `true`               | `false` для плоской карты (один оттенок на цвет). `true` использует тёмный/обычный/светлый оттенки (в 3 раза больше цветов).   |
+| `betterColour`                   | `true`               | Подбор цветов в пространстве Lab вместо RGB.                                                                                   |
+| `dithering`                      | `"FloydSteinberg"`   | `None`, `FloydSteinberg`, `MinAvgErr`, `Burkes`, `SierraLite`, `Stucki`, `Atkinson`, `Bayer44`, `Bayer22`, `Ordered33`.        |
+| `cropMode`                       | `"center"`           | `center`, `manual` или `off` (растянуть).                                                                                      |
+| `zoom`, `percent_x`, `percent_y` | `10`, `50`, `50`     | Ручной кроп: зум `10..50` (10 = вся картинка), смещения `0..100`.                                                              |
+| `preprocessing`                  | выключено            | `{ "enabled": true, "brightness": 100, "contrast": 100, "saturation": 100 }`, каждое значение `0..200`, `100` = без изменений. |
+| `supportBlock`                   | `"cobblestone"`      | Блок для noobline (лишнего ряда блоков, который задаёт оттенок первой строки карты).                                           |
 
 ## Текущие ограничения
 
@@ -127,7 +150,7 @@ curl -X POST http://localhost:3000/previews/<previewId>/nbt -o mapart.nbt
 - [ ] Поддержка прозрачности
 - [ ] Описание OpenAPI / Swagger
 - [ ] Автотесты (сравнение результата с сайтом)
-- [ ] Dockerfile
+- [x] Dockerfile
 - [ ] Постоянное хранилище превью, ограничение частоты запросов
 
 ## Как внести вклад

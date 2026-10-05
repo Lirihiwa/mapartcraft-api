@@ -105,14 +105,21 @@ curl -X POST http://localhost:3000/previews/<previewId>/nbt -o mapart.nbt
 
 The result is a gzipped `.nbt` file that can be used with a structure block, Litematica, Schematica, cubical.xyz, etc.
 
+For maps larger than 1×1, you can get one file per map in a ZIP archive:
+
+```bash
+curl -X POST http://localhost:3000/previews/<previewId>/nbt/split -o mapart.zip
+```
+
 ## API reference
 
-| Method | Path                  | Description                                                                                                                                     |
-| ------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`  | `/health`             | Health check.                                                                                                                                   |
-| `POST` | `/previews`           | `multipart/form-data` with fields `image` (file) and `settings` (JSON string). Returns `previewId`, `width`, `height`, `imageUrl`, `materials`. |
-| `GET`  | `/previews/:id/image` | Preview as PNG. Optional `?scale=1..16`.                                                                                                        |
-| `POST` | `/previews/:id/nbt`   | Gzipped `.nbt` schematic built from the stored preview.                                                                                         |
+| Method | Path                      | Description                                                                                                                                     |
+| ------ | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`  | `/health`                 | Health check.                                                                                                                                   |
+| `POST` | `/previews`               | `multipart/form-data` with fields `image` (file) and `settings` (JSON string). Returns `previewId`, `width`, `height`, `imageUrl`, `materials`. |
+| `GET`  | `/previews/:id/image`     | Preview as PNG. Optional `?scale=1..16`.                                                                                                        |
+| `POST` | `/previews/:id/nbt`       | Gzipped `.nbt` schematic built from the stored preview.                                                                                         |
+| `POST` | `/previews/:id/nbt/split` | ZIP archive with one `.nbt` per 128×128 map (`mapart_X_Y.nbt`, `X` is the column, `Y` is the row, both from 0).                                 |
 
 Errors are returned as JSON: `{ "error": "..." }` with status `400` (bad input) or `404` (unknown or expired preview).
 

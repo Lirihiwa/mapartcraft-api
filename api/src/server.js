@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const sharp = require("sharp");
 const crypto = require("crypto");
+const JSZip = require("jszip");
 const zlib = require("zlib");
 const {
     buildPalette,
@@ -259,6 +260,58 @@ app.post("/previews/:id/nbt", (req, res) => {
 
         res.set("Content-Disposition", 'attachment; filename="mapart.nbt"');
         res.type("application/octet-stream").send(zlib.gzipSync(nbt));
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: e.message });
+    }
+});
+
+app.post("/previews/:id/nbt/split", async (req, res) => {
+    const preview = previews.get(req.params.id);
+    if (!preview) {
+        return res.status(404).json({ error: "Превью не найдено" });
+    }
+
+    const { layout, width, height, selectedBlocks, settings } = preview;
+    if (settings.staircasing !== false) {
+        return res.status(400).json({
+            error: 'Пока поддерживаются только плоские карты: поставь "staircasing": false в settings',
+        });
+    }
+
+    try {
+        const mapsX = width / 128;
+        const mapsY = height / 128;
+        const zip = new JSZip();
+
+        for (let my = 0; my < mapsY; my++) {
+            for (let mx = 0; mx < mapsX; mx++) {
+                // вырезаем кусок layout размером 128x128
+                const part = new Array(128 * 128);
+                for (let row = 0; row < 128; row++) {
+                    for (let col = 0; col < 128; col++) {
+                        part[row * 128 + col] =
+                            layout[(my * 128 + row) * width + mx * 128 + col];
+                    }
+                }
+
+                const nbt = buildSchematic({
+                    layout: part,
+                    width: 128,
+                    height: 128,
+                    selectedBlocks,
+                    mcVersion: settings.version || "1.20",
+                    supportBlock: (
+                        settings.supportBlock || "cobblestone"
+                    ).toLowerCase(),
+                });
+                zip.file(`mapart_${mx}_${my}.nbt`, zlib.gzipSync(nbt));
+            }
+        }
+
+        const content = await zip.generateAsync({ type: "nodebuffer" });
+        res.set("Content-Disposition", 'attachment; filename="mapart.zip"');
+        res.type("application/zip").send(content);
     } catch (e) {
         console.error(e);
         res.status(400).json({ error: e.message });
